@@ -27,7 +27,7 @@ THREE_YEAR_KEYWORDS = [
 MINUS_ONE_KEYWORDS = [
     "Visit to Exhibit Attendee", "Visit to Exhibit non Attendee", "Last year registered VIP", 
     "Last year registered", "Last year attended", "Last year attended VIP", 
-    "External Abandon Basket", "Registration", "Registrations"
+    "External Abandon Basket"
 ]
 
 # --- TOOL 1: THE SURVEY ---
@@ -75,7 +75,6 @@ elif app_mode == "The Segment Creation":
             curr_yr = int(m_year_str)
             
             # 2. Pre-Calculate Year Math
-            # Minus 1 Edition (e.g. 2025)
             prev_yr_val = str(curr_yr - jump)
             
             # 3 Editions (e.g. 23, 24, 25)
@@ -125,7 +124,7 @@ elif app_mode == "The Segment Creation":
                         is_5_year = any(k.lower() in label_lower for k in FIVE_YEAR_KEYWORDS)
                         if not is_5_year:
                             is_3_year = any(k.lower() in label_lower for k in THREE_YEAR_KEYWORDS)
-                        # Check Minus 1 condition
+                        # Registration/Registrations will skip this list and default to current year
                         is_minus_1 = any(k.lower() in label_lower for k in MINUS_ONE_KEYWORDS)
                     
                     for line in lines:
@@ -140,6 +139,7 @@ elif app_mode == "The Segment Creation":
                             elif is_minus_1:
                                 new_lines.append(f"YEARS = {prev_yr_val}")
                             else:
+                                # Standard current year (handles Registration, booked_, etc.)
                                 new_lines.append(f"YEARS = {m_year_str}")
                         else:
                             new_lines.append(line)
