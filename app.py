@@ -27,7 +27,7 @@ THREE_YEAR_KEYWORDS = [
 MINUS_ONE_KEYWORDS = [
     "Visit to Exhibit Attendee", "Visit to Exhibit non Attendee", "Last year registered VIP", 
     "Last year registered", "Last year attended", "Last year attended VIP", 
-    "External Abandon Basket"
+    "External Abandon Basket", "Registration", "Registrations"
 ]
 
 # --- TOOL 1: THE SURVEY ---
@@ -69,19 +69,22 @@ elif app_mode == "The Segment Creation":
         m_year_str = str(sheet.cell(row=start_row, column=3).value or "").strip()
         
         if m_alpha and m_year_str:
+            # 1. Detect Frequency
             jump = 2 if m_alpha.upper() in BIENNIAL_SHOWS else 1
             st.info(f"Detected {'Biennial' if jump==2 else 'Annual'} logic for {m_alpha}.")
             curr_yr = int(m_year_str)
             
-            # MATH PREP
-            # 1 Edition back (full year)
+            # 2. Pre-Calculate Year Math
+            # Minus 1 Edition (e.g. 2025)
             prev_yr_val = str(curr_yr - jump)
-            # 3 Editions back (2 digits)
+            
+            # 3 Editions (e.g. 23, 24, 25)
             y3_1 = str(curr_yr - (jump * 3))[-2:]
             y3_2 = str(curr_yr - (jump * 2))[-2:]
             y3_3 = str(curr_yr - jump)[-2:]
             three_yr_str = f"{y3_1}, {y3_2}, {y3_3}"
-            # 5 Editions back (2 digits)
+            
+            # 5 Editions (e.g. 21, 22, 23, 24, 25)
             y5_1 = str(curr_yr - (jump * 5))[-2:]
             y5_2 = str(curr_yr - (jump * 4))[-2:]
             y5_3 = str(curr_yr - (jump * 3))[-2:]
@@ -97,6 +100,7 @@ elif app_mode == "The Segment Creation":
                 label_str = str(label_val).strip()
                 label_lower = label_str.lower()
                 
+                # Fill down standard columns
                 sheet.cell(row=row, column=2).value = m_alpha
                 sheet.cell(row=row, column=3).value = m_year_str
                 
@@ -116,10 +120,12 @@ elif app_mode == "The Segment Creation":
                     is_3_year = False
                     is_minus_1 = False
 
+                    # Only run math if NOT a booked row
                     if not is_booked:
                         is_5_year = any(k.lower() in label_lower for k in FIVE_YEAR_KEYWORDS)
-                        if not is_5_year: # Only check 3-year if 5-year didn't hit
+                        if not is_5_year:
                             is_3_year = any(k.lower() in label_lower for k in THREE_YEAR_KEYWORDS)
+                        # Check Minus 1 condition
                         is_minus_1 = any(k.lower() in label_lower for k in MINUS_ONE_KEYWORDS)
                     
                     for line in lines:
@@ -142,5 +148,5 @@ elif app_mode == "The Segment Creation":
             
             output = io.BytesIO()
             wb.save(output)
-            st.success(f"Processed {row-start_row} rows successfully.")
+            st.success(f"Processed {row-start_row} rows.")
             st.download_button("Download Generated Segments", data=output.getvalue(), file_name=f"Generated_{m_alpha}_{m_year_str}.xlsx")
