@@ -30,6 +30,9 @@ MINUS_ONE_KEYWORDS = [
     "External Abandon Basket"
 ]
 
+# Keywords that MUST stay on the current year
+CURRENT_YEAR_SHIELDS = ["booked_", "Registration", "Registrations"]
+
 # --- TOOL 1: THE SURVEY ---
 if app_mode == "The Survey":
     st.title("📊 The Survey")
@@ -69,26 +72,15 @@ elif app_mode == "The Segment Creation":
         m_year_str = str(sheet.cell(row=start_row, column=3).value or "").strip()
         
         if m_alpha and m_year_str:
-            # 1. Detect Frequency
             jump = 2 if m_alpha.upper() in BIENNIAL_SHOWS else 1
             st.info(f"Detected {'Biennial' if jump==2 else 'Annual'} logic for {m_alpha}.")
             curr_yr = int(m_year_str)
             
-            # 2. Pre-Calculate Year Math
+            # MATH PREP
             prev_yr_val = str(curr_yr - jump)
-            
-            # 3 Editions (e.g. 23, 24, 25)
-            y3_1 = str(curr_yr - (jump * 3))[-2:]
-            y3_2 = str(curr_yr - (jump * 2))[-2:]
-            y3_3 = str(curr_yr - jump)[-2:]
+            y3_1, y3_2, y3_3 = str(curr_yr-(jump*3))[-2:], str(curr_yr-(jump*2))[-2:], str(curr_yr-jump)[-2:]
             three_yr_str = f"{y3_1}, {y3_2}, {y3_3}"
-            
-            # 5 Editions (e.g. 21, 22, 23, 24, 25)
-            y5_1 = str(curr_yr - (jump * 5))[-2:]
-            y5_2 = str(curr_yr - (jump * 4))[-2:]
-            y5_3 = str(curr_yr - (jump * 3))[-2:]
-            y5_4 = str(curr_yr - (jump * 2))[-2:]
-            y5_5 = str(curr_yr - jump)[-2:]
+            y5_1, y5_2, y5_3, y5_4, y5_5 = str(curr_yr-(jump*5))[-2:], str(curr_yr-(jump*4))[-2:], str(curr_yr-(jump*3))[-2:], str(curr_yr-(jump*2))[-2:], str(curr_yr-jump)[-2:]
             five_yr_str = f"{y5_1}, {y5_2}, {y5_3}, {y5_4}, {y5_5}"
 
             row = start_row
@@ -99,7 +91,6 @@ elif app_mode == "The Segment Creation":
                 label_str = str(label_val).strip()
                 label_lower = label_str.lower()
                 
-                # Fill down standard columns
                 sheet.cell(row=row, column=2).value = m_alpha
                 sheet.cell(row=row, column=3).value = m_year_str
                 
@@ -114,17 +105,19 @@ elif app_mode == "The Segment Creation":
                     lines = str(crit).split('\n')
                     new_lines = []
                     
-                    is_booked = "booked_" in label_lower
+                    # Logic Priority
+                    # 1. Check if the label is Shielded (Current Year)
+                    is_shielded = any(s.lower() in label_lower for s in CURRENT_YEAR_SHIELDS)
+                    
                     is_5_year = False
                     is_3_year = False
                     is_minus_1 = False
 
-                    # Only run math if NOT a booked row
-                    if not is_booked:
+                    # Only run special math if NOT shielded
+                    if not is_shielded:
                         is_5_year = any(k.lower() in label_lower for k in FIVE_YEAR_KEYWORDS)
                         if not is_5_year:
                             is_3_year = any(k.lower() in label_lower for k in THREE_YEAR_KEYWORDS)
-                        # Registration/Registrations will skip this list and default to current year
                         is_minus_1 = any(k.lower() in label_lower for k in MINUS_ONE_KEYWORDS)
                     
                     for line in lines:
@@ -139,7 +132,7 @@ elif app_mode == "The Segment Creation":
                             elif is_minus_1:
                                 new_lines.append(f"YEARS = {prev_yr_val}")
                             else:
-                                # Standard current year (handles Registration, booked_, etc.)
+                                # Shielded rows (Registration/booked_) land here
                                 new_lines.append(f"YEARS = {m_year_str}")
                         else:
                             new_lines.append(line)
