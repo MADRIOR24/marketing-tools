@@ -125,7 +125,7 @@ elif app_mode == "The Segment Creation":
                     for line in lines:
                         u_line = line.strip().upper()
                         if u_line.startswith("SHOW ="):
-                            new_lines.append(f"SHOW = {m_alpha}"
+                            new_lines.append(f"SHOW = {m_alpha}")
                         elif u_line.startswith("YEARS ="):
                             if is_5_year:
                                 new_lines.append(f"YEARS = {five_yr_str}")
