@@ -19,11 +19,15 @@ THREE_YEAR_KEYWORDS = [
     "leads", "Last 3 years attended", "Last 3 years attended VIP", "Bounceback"
 ]
 
-# List 2: Trigger "Minus 1 Edition" Logic
+# List 2: Trigger "Minus 1 Edition" Logic (Year - 1 for annual, Year - 2 for biennial)
 MINUS_ONE_KEYWORDS = [
-    "Visit to Exhibit Attendee", "Visit to Exhibit non Attendee", "Last year registered VIP", 
-    "Last year registered", "Last year attended", "Last year attended_VIP", 
-    "External Abandon Basket", "Last year attended Buyer", "Last year registered Buyer"
+    "Visit to Exhibit Attendee", 
+    "Visit to Exhibit non Attendee", 
+    "Last year registered VIP", 
+    "Last year registered", 
+    "Last year attended", 
+    "Last year attended VIP", 
+    "External Abandon Basket"
 ]
 
 # --- TOOL 1: THE SURVEY ---
@@ -64,7 +68,7 @@ if app_mode == "The Survey":
 # --- TOOL 2: THE SEGMENT CREATION ---
 elif app_mode == "The Segment Creation":
     st.title("📁 The Segment Creation")
-    st.write("Automate Alpha Code fill-down and Criteria logic with keyword exclusions.")
+    st.write("Automate Alpha Code fill-down and Criteria logic.")
     
     uploaded_file = st.file_uploader("Upload Customer Journey Template", type=["xlsx"])
     
@@ -81,9 +85,9 @@ elif app_mode == "The Segment Creation":
             st.info(f"Detected {'Biennial' if jump==2 else 'Annual'} logic for {m_alpha}.")
             
             curr_yr = int(m_year_str)
-            prev_yr = str(curr_yr - jump)
+            prev_yr_val = str(curr_yr - jump)
             
-            # Formatting "Last 3 Years" (e.g., 23, 24, 25)
+            # Formatting "Last 3 Editions" (e.g., 23, 24, 25)
             y1 = str(curr_yr - (jump * 3))[-2:]
             y2 = str(curr_yr - (jump * 2))[-2:]
             y3 = str(curr_yr - jump)[-2:]
@@ -98,45 +102,44 @@ elif app_mode == "The Segment Creation":
                 label_str = str(label_val).strip()
                 label_lower = label_str.lower()
                 
-                # Standard Fill down B, C, E, F
+                # Fill down Columns B and C
                 sheet.cell(row=row, column=2).value = m_alpha
                 sheet.cell(row=row, column=3).value = m_year_str
                 
-                # Column G: Segment Name
+                # Update Segment Name (Column G)
                 clean_lbl = label_str.replace(" ", "_")
                 cust_type = sheet.cell(row=row, column=6).value
                 sheet.cell(row=row, column=7).value = f"{m_alpha}{m_year_str}_{cust_type}_{clean_lbl}"
                 
-                # Column I: Criteria Logic
+                # Update Criteria (Column I)
                 crit = sheet.cell(row=row, column=9).value
                 if crit:
                     lines = str(crit).split('\n')
                     new_lines = []
                     
-                    # Logic: Check for 'booked_' first (The Shield)
+                    # Logic Check
                     is_booked = "booked_" in label_lower
-                    
-                    # If NOT booked, check for 3-year trigger
                     is_3_year = False
+                    is_minus_1 = False
+
                     if not is_booked:
                         is_3_year = any(k.lower() in label_lower for k in THREE_YEAR_KEYWORDS)
-                    
-                    # Check for minus-1 trigger
-                    is_minus_1 = any(k.lower() in label_lower for k in MINUS_ONE_KEYWORDS)
+                        is_minus_1 = any(k.lower() in label_lower for k in MINUS_ONE_KEYWORDS)
                     
                     for line in lines:
                         u_line = line.strip().upper()
                         
+                        # Sync SHOW line
                         if u_line.startswith("SHOW ="):
                             new_lines.append(f"SHOW = {m_alpha}")
                         
+                        # Sync YEARS line
                         elif u_line.startswith("YEARS ="):
                             if is_3_year:
                                 new_lines.append(f"YEARS = {three_yr_str}")
                             elif is_minus_1:
-                                new_lines.append(f"YEARS = {prev_yr}")
+                                new_lines.append(f"YEARS = {prev_yr_val}")
                             else:
-                                # This handles 'booked_' rows and standard rows
                                 new_lines.append(f"YEARS = {m_year_str}")
                         else:
                             new_lines.append(line)
@@ -147,5 +150,5 @@ elif app_mode == "The Segment Creation":
             
             output = io.BytesIO()
             wb.save(output)
-            st.success(f"Processed {row-start_row} rows successfully.")
+            st.success(f"Processed {row-start_row} rows.")
             st.download_button("Download Generated Segments", data=output.getvalue(), file_name=f"Generated_{m_alpha}_{m_year_str}.xlsx")
